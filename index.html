@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galsen Rap Studio — Générateur de textes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0a0d;
+    --panel: #17141a;
+    --strip: #1e1a22;
+    --line: #322c38;
+    --gold: #e8a33d;
+    --gold-dim: #a9762c;
+    --rec: #e4402f;
+    --ivory: #f4ece1;
+    --muted: #948a86;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Anton', sans-serif;
+    --body: 'Space Grotesk', sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    padding:32px 16px 64px;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(232,163,61,0.08), transparent 40%),
+      radial-gradient(circle at 85% 10%, rgba(228,64,47,0.06), transparent 35%),
+      var(--bg);
+    color:var(--ivory);
+    font-family:var(--body);
+    display:flex;
+    justify-content:center;
+  }
+
+  .rack{
+    max-width:640px;
+    width:100%;
+  }
+
+  /* ---- Nameplate / header ---- */
+  .nameplate{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .nameplate .kicker{
+    font-family:var(--mono);
+    letter-spacing:0.35em;
+    font-size:11px;
+    color:var(--gold-dim);
+    text-transform:uppercase;
+  }
+  .nameplate h1{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:clamp(34px, 7vw, 52px);
+    letter-spacing:0.02em;
+    margin:6px 0 4px;
+    color:var(--ivory);
+    text-shadow: 0 0 22px rgba(232,163,61,0.25);
+  }
+  .nameplate h1 span{ color:var(--gold); }
+  .nameplate p{
+    margin:0;
+    color:var(--muted);
+    font-size:13.5px;
+  }
+
+  /* ---- Console body ---- */
+  .console{
+    background:linear-gradient(180deg, var(--panel), #120f14);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 20px 24px;
+    box-shadow: 0 30px 60px -25px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03);
+    position:relative;
+  }
+
+  .console::before{
+    content:"";
+    position:absolute;
+    top:0; left:20px; right:20px;
+    height:1px;
+    background:linear-gradient(90deg, transparent, rgba(232,163,61,0.4), transparent);
+  }
+
+  .rec-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+    padding-bottom:14px;
+    border-bottom:1px dashed var(--line);
+  }
+  .rec-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.15em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .rec-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:#4a4550;
+    box-shadow:none;
+    transition: all .2s;
+  }
+  .rec-dot.live{
+    background:var(--rec);
+    box-shadow:0 0 10px 2px rgba(228,64,47,0.7);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0.25; } }
+
+  .track-count{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--gold-dim);
+  }
+
+  /* ---- Channel strips (form) ---- */
+  .strip{
+    background:var(--strip);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .strip label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:8px;
+  }
+  .strip label::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold-dim);
+    flex-shrink:0;
+  }
+
+  input[type=text]{
+    width:100%;
+    padding:11px 12px;
+    background:#0e0c10;
+    border:1px solid var(--line);
+    color:var(--ivory);
+    border-radius:7px;
+    font-size:15px;
+    font-family:var(--body);
+    appearance:none;
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px rgba(232,163,61,0.15);
+  }
+  input::placeholder{ color:#5c5560; }
+
+  /* ---- Custom dropdown (remplace <select>) ---- */
+  .dropdown{
+    position:relative;
+  }
+  .dropdown-toggle{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:11px 12px;
+    background:#0e0c10;
+    border:1px solid var(--line);
+    color:var(--ivory);
+    border-radius:7px;
+    font-size:15px;
+    font-family:var(--body);
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .dropdown-toggle:hover{ border-color:var(--gold-dim); }
+  .dropdown.open .dropdown-toggle{
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px rgba(232,163,61,0.15);
+  }
+  .dropdown-toggle .chevron{
+    color:var(--gold);
+    font-size:11px;
+    flex-shrink:0;
+    transition:transform .18s ease;
+  }
+  .dropdown.open .dropdown-toggle .chevron{ transform:rotate(180deg); }
+
+  .dropdown-menu{
+    position:absolute;
+    left:0; right:0;
+    top:calc(100% + 6px);
+    margin:0;
+    padding:6px;
+    list-style:none;
+    background:#120f14;
+    border:1px solid var(--line);
+    border-radius:9px;
+    max-height:260px;
+    overflow-y:auto;
+    z-index:30;
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.9);
+    opacity:0;
+    transform-origin:top center;
+    transform:translateY(-6px) scaleY(0.95);
+    pointer-events:none;
+    transition:opacity .16s ease, transform .16s ease;
+  }
+  .dropdown.open .dropdown-menu{
+    opacity:1;
+    transform:translateY(0) scaleY(1);
+    pointer-events:auto;
+  }
+  .dropdown-menu li{
+    padding:10px 12px;
+    border-radius:6px;
+    font-size:14.5px;
+    color:var(--ivory);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .dropdown-menu li + li{ margin-top:2px; }
+  .dropdown-menu li:hover{
+    background:rgba(232,163,61,0.12);
+    color:var(--gold);
+  }
+  .dropdown-menu li.selected{ color:var(--gold); }
+  .dropdown-menu li.selected::after{
+    content:"●";
+    font-size:8px;
+    color:var(--gold);
+    flex-shrink:0;
+  }
+  .dropdown-menu::-webkit-scrollbar{ width:8px; }
+  .dropdown-menu::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+
+  .custom-theme-wrap{
+    overflow:hidden;
+    max-height:0;
+    opacity:0;
+    margin-top:0;
+    transition:max-height .2s ease, opacity .2s ease, margin-top .2s ease;
+  }
+  .custom-theme-wrap.on{
+    max-height:60px;
+    opacity:1;
+    margin-top:10px;
+  }
+
+  /* ---- Bouton Surprends-moi ---- */
+  .dice-btn{
+    width:100%;
+    margin-bottom:14px;
+    padding:11px;
+    background:transparent;
+    border:1px dashed var(--gold-dim);
+    color:var(--gold-dim);
+    border-radius:8px;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .dice-btn:hover{
+    color:var(--gold);
+    border-color:var(--gold);
+    background:rgba(232,163,61,0.06);
+  }
+
+  /* ---- Contrôles segmentés (longueur, nombre de prises) ---- */
+  .segmented{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .seg-btn{
+    flex:1;
+    min-width:100px;
+    padding:10px 8px;
+    background:#0e0c10;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:7px;
+    font-family:var(--body);
+    font-size:13px;
+    cursor:pointer;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .seg-btn:hover{ border-color:var(--gold-dim); }
+  .seg-btn.selected{
+    border-color:var(--gold);
+    color:var(--gold);
+    background:rgba(232,163,61,0.08);
+  }
+
+  /* ---- Curseur dosage Wolof / Français ---- */
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:5px;
+    border-radius:3px;
+    background:linear-gradient(90deg, var(--gold) 0%, var(--gold) var(--fill, 70%), var(--line) var(--fill, 70%), var(--line) 100%);
+    outline:none;
+    margin:4px 0 2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--ivory);
+    border:3px solid var(--gold);
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--ivory);
+    border:3px solid var(--gold);
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  }
+  .ratio-readout{
+    display:flex;
+    justify-content:space-between;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .ratio-readout span:first-child{ color:var(--gold); }
+
+  /* ---- REC button ---- */
+  .rec-btn{
+    width:100%;
+    margin-top:6px;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(180deg, var(--rec), #b52c1f);
+    color:var(--ivory);
+    font-family:var(--display);
+    font-size:18px;
+    letter-spacing:0.05em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    cursor:pointer;
+    box-shadow: 0 8px 18px -6px rgba(228,64,47,0.55);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .rec-btn:hover{ transform:translateY(-1px); }
+  .rec-btn:active{ transform:translateY(0); }
+  .rec-btn:disabled{
+    background:#3a3540;
+    color:var(--muted);
+    box-shadow:none;
+    cursor:not-allowed;
+    transform:none;
+  }
+  .rec-btn .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--ivory);
+  }
+  .rec-btn:disabled .dot{ background:var(--muted); }
+
+  /* ---- VU meter loader ---- */
+  .vu{
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    gap:4px;
+    height:34px;
+    margin-top:16px;
+  }
+  .vu.on{ display:flex; }
+  .vu span{
+    width:6px;
+    background:linear-gradient(180deg, var(--gold), var(--rec));
+    border-radius:2px;
+    animation: bounce 0.9s ease-in-out infinite;
+  }
+  .vu span:nth-child(1){ animation-delay:0s; }
+  .vu span:nth-child(2){ animation-delay:0.1s; }
+  .vu span:nth-child(3){ animation-delay:0.2s; }
+  .vu span:nth-child(4){ animation-delay:0.3s; }
+  .vu span:nth-child(5){ animation-delay:0.4s; }
+  .vu span:nth-child(6){ animation-delay:0.3s; }
+  .vu span:nth-child(7){ animation-delay:0.2s; }
+  .vu span:nth-child(8){ animation-delay:0.1s; }
+  .vu span:nth-child(9){ animation-delay:0s; }
+  @keyframes bounce{
+    0%,100%{ height:6px; }
+    50%{ height:32px; }
+  }
+  .vu-label{
+    text-align:center;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.15em;
+    color:var(--gold-dim);
+    text-transform:uppercase;
+    margin-top:8px;
+    display:none;
+  }
+  .vu-label.on{ display:block; }
+
+  /* ---- Error banner ---- */
+  .err{
+    display:none;
+    margin-top:14px;
+    padding:12px 14px;
+    background:rgba(228,64,47,0.1);
+    border:1px solid rgba(228,64,47,0.4);
+    border-radius:8px;
+    color:#f3a99e;
+    font-size:13px;
+    font-family:var(--mono);
+  }
+  .err.on{ display:block; }
+
+  /* ---- Output ---- */
+  .output{
+    display:none;
+    margin-top:20px;
+  }
+  .output.on{ display:block; }
+
+  .output-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .output-head label{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .output-actions{ display:flex; gap:8px; }
+  .icon-btn{
+    background:var(--strip);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:11px;
+    padding:6px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .icon-btn:hover{ color:var(--gold); border-color:var(--gold-dim); }
+
+  /* ---- Onglets des variantes (prises) ---- */
+  .variant-tabs{
+    display:none;
+    gap:6px;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+  .variant-tabs.on{ display:flex; }
+  .variant-tab{
+    padding:6px 12px;
+    background:var(--strip);
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    color:var(--muted);
+    cursor:pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .variant-tab:hover{ border-color:var(--gold-dim); }
+  .variant-tab.selected{
+    border-color:var(--gold);
+    color:var(--gold);
+  }
+
+  /* ---- Coloration des balises de section dans le texte généré ---- */
+  .lyrics-box .tag{
+    display:inline-block;
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:0.04em;
+    padding:2px 8px;
+    border-radius:5px;
+    margin:10px 0 4px;
+  }
+  .lyrics-box .tag-refrain{
+    background:rgba(232,163,61,0.16);
+    color:var(--gold);
+  }
+  .lyrics-box .tag-couplet{
+    background:rgba(228,64,47,0.14);
+    color:#f3a99e;
+  }
+  .lyrics-box .tag-pont{
+    background:rgba(111,215,192,0.14);
+    color:#6fd7c0;
+  }
+  .lyrics-box .tag-other{
+    background:rgba(148,138,134,0.14);
+    color:var(--muted);
+  }
+
+  .lyrics-box{
+    background:#08070a;
+    border:1px solid var(--line);
+    border-left:3px solid var(--gold);
+    border-radius:8px;
+    padding:18px;
+    font-family:var(--mono);
+    font-size:14.5px;
+    line-height:1.7;
+    white-space:pre-wrap;
+    max-height:420px;
+    overflow-y:auto;
+    color:#e9e2d6;
+  }
+  .lyrics-box::-webkit-scrollbar{ width:8px; }
+  .lyrics-box::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  footer{
+    text-align:center;
+    margin-top:18px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    color:#4a4550;
+    text-transform:uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .rec-dot.live, .vu span{ animation:none; }
+  }
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+<div class="rack">
+
+  <div class="nameplate">
+    <div class="kicker">Studio d'enregistrement · Dakar</div>
+    <h1>GALSEN RAP <span>STUDIO</span></h1>
+    <p>Générateur de textes Hip-Hop en Wolof</p>
+  </div>
+
+  <div class="console">
+
+    <div class="rec-row">
+      <div class="rec-status">
+        <span class="rec-dot" id="rec-dot"></span>
+        <span id="rec-label">Prêt à enregistrer</span>
+      </div>
+      <span class="track-count" id="track-count">Piste 01</span>
+    </div>
+
+    <button type="button" class="dice-btn" id="surprise-btn">🎲 Surprends-moi (thème + style aléatoires)</button>
+
+    <div class="strip">
+      <label id="theme-label">Thème du morceau</label>
+      <div class="dropdown" id="theme-dropdown" data-value="La rue et la survie (Motivation, Goorgoorlu)">
+        <button type="button" class="dropdown-toggle" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="theme-label">
+          <span class="dropdown-value">La rue et la motivation (Goorgoorlu)</span>
+          <span class="chevron">▾</span>
+        </button>
+        <ul class="dropdown-menu" role="listbox">
+          <li role="option" class="selected" data-value="La rue et la survie (Motivation, Goorgoorlu)">La rue et la motivation (Goorgoorlu)</li>
+          <li role="option" data-value="Le succès et l'argent">Le succès et l'argent</li>
+          <li role="option" data-value="La fête et l'ambiance urbaine">La fête et l'ambiance urbaine</li>
+          <li role="option" data-value="La critique sociale, la politique">Critique sociale / Société</li>
+          <li role="option" data-value="Clash et Ego Trip">Ego Trip / Clash</li>
+          <li role="option" data-value="L'amour et la déception amoureuse">Amour et déception</li>
+          <li role="option" data-value="La foi, la religion et la spiritualité">Religion et spiritualité</li>
+          <li role="option" data-value="L'exil, l'immigration et la diaspora (Barça ou Barsakh)">Exil et diaspora (Barça ou Barsakh)</li>
+          <li role="option" data-value="La nostalgie du quartier et de l'enfance">Nostalgie du quartier / enfance</li>
+          <li role="option" data-value="La famille, les racines et le respect des anciens">Famille et racines</li>
+          <li role="option" data-value="custom">✏️ Thème personnalisé...</li>
+        </ul>
+      </div>
+      <div class="custom-theme-wrap" id="custom-theme-wrap">
+        <input type="text" id="theme-custom" placeholder="Écris ton propre thème..." maxlength="120">
+      </div>
+    </div>
+
+    <div class="strip">
+      <label id="style-label">Style de l'instrumentale</label>
+      <div class="dropdown" id="style-dropdown" data-value="Drill sombre et rapide">
+        <button type="button" class="dropdown-toggle" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="style-label">
+          <span class="dropdown-value">Drill</span>
+          <span class="chevron">▾</span>
+        </button>
+        <ul class="dropdown-menu" role="listbox">
+          <li role="option" class="selected" data-value="Drill sombre et rapide">Drill</li>
+          <li role="option" data-value="Trap lourde">Trap</li>
+          <li role="option" data-value="Afrobeat dansant">Afrobeat / Afropop</li>
+          <li role="option" data-value="Boom Bap classique (années 90)">Boom Bap Old School</li>
+          <li role="option" data-value="Mbalax fusion moderne">Mbalax Fusion</li>
+          <li role="option" data-value="Amapiano influencé">Amapiano</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="strip">
+      <label for="keywords">Mots à inclure</label>
+      <input type="text" id="keywords" placeholder="Ex : Ndar, Mbeuguel, Xalis, Galsen..." maxlength="150">
+    </div>
+
+    <div class="strip">
+      <label>Longueur du morceau</label>
+      <div class="segmented" id="length-segmented" data-value="complet">
+        <button type="button" class="seg-btn selected" data-value="complet">Format complet</button>
+        <button type="button" class="seg-btn" data-value="court">Format court (16 mesures)</button>
+      </div>
+    </div>
+
+    <div class="strip">
+      <label>Dosage Wolof / Français</label>
+      <input type="range" id="wolof-ratio" min="0" max="100" step="5" value="70">
+      <div class="ratio-readout">
+        <span id="ratio-wolof">🇸🇳 Wolof 70%</span>
+        <span id="ratio-francais">🇫🇷 Français 30%</span>
+      </div>
+    </div>
+
+    <div class="strip">
+      <label>Nombre de prises</label>
+      <div class="segmented" id="variants-segmented" data-value="1">
+        <button type="button" class="seg-btn selected" data-value="1">1 prise</button>
+        <button type="button" class="seg-btn" data-value="2">2 prises</button>
+        <button type="button" class="seg-btn" data-value="3">3 prises</button>
+      </div>
+    </div>
+
+    <button class="rec-btn" id="generate-btn">
+      <span class="dot"></span>
+      <span id="btn-label">Lancer l'enregistrement</span>
+    </button>
+
+    <!-- Widget Turnstile invisible : ne s'affiche que si Cloudflare a besoin
+         d'un vrai défi visuel (cas rare pour un utilisateur légitime). -->
+    <div id="turnstile-widget"></div>
+
+    <div class="vu" id="vu">
+      <span style="height:14px"></span><span style="height:26px"></span><span style="height:10px"></span>
+      <span style="height:30px"></span><span style="height:18px"></span><span style="height:24px"></span>
+      <span style="height:12px"></span><span style="height:28px"></span><span style="height:16px"></span>
+    </div>
+    <div class="vu-label" id="vu-label">L'IA écrit les paroles...</div>
+
+    <div class="err" id="err"></div>
+
+    <div class="output" id="output">
+      <div class="output-head">
+        <label>Texte généré</label>
+        <div class="output-actions">
+          <button class="icon-btn" id="regenerate-btn">🔁 Régénérer</button>
+          <button class="icon-btn" id="copy-btn">Copier</button>
+          <button class="icon-btn" id="download-btn">Télécharger .txt</button>
+        </div>
+      </div>
+      <div class="variant-tabs" id="variant-tabs"></div>
+      <div class="lyrics-box" id="lyrics-output"></div>
+      <div class="meta-row">
+        <span id="word-count">0 mots</span>
+        <span id="gen-time"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Console virtuelle · IA Claude</footer>
+</div>
+
+<script>
+  // ---- Cloudflare Turnstile ----
+  // Remplace par ta vraie clé de site (publique, sans risque à exposer côté front).
+  // À créer sur https://dash.cloudflare.com/ > Turnstile > Add site.
+  const TURNSTILE_SITE_KEY = "0x4AAAAAAEfUxT3MBvi8FU9N";
+
+  let turnstileWidgetId = null;
+  let turnstileReady = false;
+  let pendingTurnstileResolvers = []; // file d'attente (normalement 1 seul élément à la fois)
+
+  function initTurnstile(){
+    if (typeof turnstile === "undefined") {
+      // Le script Cloudflare n'a pas encore chargé (réseau lent) : on réessaie.
+      setTimeout(initTurnstile, 300);
+      return;
+    }
+    turnstileWidgetId = turnstile.render("#turnstile-widget", {
+      sitekey: TURNSTILE_SITE_KEY,
+      size: "invisible",
+      appearance: "interaction-only", // n'apparaît que si un vrai défi visuel est requis
+      execution: "execute", // ne se déclenche que quand on appelle turnstile.execute()
+      callback: (token) => {
+        const resolve = pendingTurnstileResolvers.shift();
+        if (resolve) resolve(token);
+      },
+      "error-callback": () => {
+        const resolve = pendingTurnstileResolvers.shift();
+        if (resolve) resolve(null); // null = échec, géré par l'appelant
+      },
+    });
+    turnstileReady = true;
+  }
+  initTurnstile();
+
+  // Récupère un jeton Turnstile juste avant chaque génération.
+  // Un jeton est à usage unique : on reset le widget après chaque tentative
+  // (succès ou échec) pour préparer la prochaine exécution.
+  function getTurnstileToken(){
+    return new Promise((resolve, reject) => {
+      if (!turnstileReady) {
+        reject(new Error("Vérification anti-robot indisponible, réessaie dans un instant."));
+        return;
+      }
+      const timeoutId = setTimeout(() => {
+        pendingTurnstileResolvers = pendingTurnstileResolvers.filter(r => r !== onToken);
+        reject(new Error("La vérification anti-robot a expiré, réessaie."));
+      }, 8000);
+
+      function onToken(token){
+        clearTimeout(timeoutId);
+        if (token) resolve(token);
+        else reject(new Error("La vérification anti-robot a échoué, réessaie."));
+      }
+
+      pendingTurnstileResolvers.push(onToken);
+      turnstile.execute(turnstileWidgetId);
+    });
+  }
+
+  const btn = document.getElementById("generate-btn");
+  const btnLabel = document.getElementById("btn-label");
+  const vu = document.getElementById("vu");
+  const vuLabel = document.getElementById("vu-label");
+  const recDot = document.getElementById("rec-dot");
+  const recLabel = document.getElementById("rec-label");
+  const trackCount = document.getElementById("track-count");
+  const errBox = document.getElementById("err");
+  const output = document.getElementById("output");
+  const lyricsOutput = document.getElementById("lyrics-output");
+  const wordCount = document.getElementById("word-count");
+  const genTime = document.getElementById("gen-time");
+  const copyBtn = document.getElementById("copy-btn");
+  const downloadBtn = document.getElementById("download-btn");
+  const regenerateBtn = document.getElementById("regenerate-btn");
+  const surpriseBtn = document.getElementById("surprise-btn");
+  const wolofRatioInput = document.getElementById("wolof-ratio");
+  const ratioWolofLabel = document.getElementById("ratio-wolof");
+  const ratioFrancaisLabel = document.getElementById("ratio-francais");
+  const variantTabsEl = document.getElementById("variant-tabs");
+
+  let track = 1;
+  let lastTexts = [];
+  let currentVariant = 0;
+  let cooldownUntil = 0;
+  let cooldownTimer = null;
+
+  function startCooldown(seconds){
+    cooldownUntil = Date.now() + seconds * 1000;
+    btn.disabled = true;
+    clearInterval(cooldownTimer);
+    cooldownTimer = setInterval(() => {
+      const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(cooldownTimer);
+        btn.disabled = false;
+        btnLabel.textContent = "Lancer l'enregistrement";
+        recLabel.textContent = "Prêt à enregistrer";
+      } else {
+        btnLabel.textContent = `Patiente ${remaining}s...`;
+      }
+    }, 250);
+  }
+
+  // ---- Menus déroulants custom (remplacent les <select>) ----
+  function initDropdown(rootId, onChange){
+    const root = document.getElementById(rootId);
+    const toggle = root.querySelector(".dropdown-toggle");
+    const valueEl = root.querySelector(".dropdown-value");
+    const items = Array.from(root.querySelectorAll(".dropdown-menu li"));
+
+    function open(){
+      root.classList.add("open");
+      toggle.setAttribute("aria-expanded", "true");
+    }
+    function close(){
+      root.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      root.classList.contains("open") ? close() : open();
+    });
+
+    items.forEach(li => {
+      li.addEventListener("click", () => {
+        items.forEach(o => o.classList.remove("selected"));
+        li.classList.add("selected");
+        valueEl.textContent = li.textContent;
+        root.dataset.value = li.dataset.value;
+        close();
+        if (onChange) onChange(li.dataset.value);
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target)) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+
+    return root;
+  }
+
+  const themeDropdown = initDropdown("theme-dropdown", (value) => {
+    const wrap = document.getElementById("custom-theme-wrap");
+    const isCustom = value === "custom";
+    wrap.classList.toggle("on", isCustom);
+    if (isCustom) document.getElementById("theme-custom").focus();
+  });
+  const styleDropdown = initDropdown("style-dropdown");
+
+  // ---- Contrôles segmentés (longueur du morceau, nombre de prises) ----
+  function initSegmented(rootId){
+    const root = document.getElementById(rootId);
+    const buttons = Array.from(root.querySelectorAll(".seg-btn"));
+    buttons.forEach(b => {
+      b.addEventListener("click", () => {
+        buttons.forEach(o => o.classList.remove("selected"));
+        b.classList.add("selected");
+        root.dataset.value = b.dataset.value;
+      });
+    });
+    return root;
+  }
+  const lengthSegmented = initSegmented("length-segmented");
+  const variantsSegmented = initSegmented("variants-segmented");
+
+  // ---- Curseur de dosage Wolof / Français ----
+  function updateRatioLabels(){
+    const wolof = parseInt(wolofRatioInput.value, 10);
+    const francais = 100 - wolof;
+    ratioWolofLabel.textContent = `🇸🇳 Wolof ${wolof}%`;
+    ratioFrancaisLabel.textContent = `🇫🇷 Français ${francais}%`;
+    wolofRatioInput.style.setProperty("--fill", wolof + "%");
+  }
+  wolofRatioInput.addEventListener("input", updateRatioLabels);
+  updateRatioLabels();
+
+  // ---- Bouton "Surprends-moi" : thème + style aléatoires ----
+  function pickRandomOption(rootId, excludeValues){
+    const root = document.getElementById(rootId);
+    const toggle = root.querySelector(".dropdown-toggle");
+    const valueEl = root.querySelector(".dropdown-value");
+    const items = Array.from(root.querySelectorAll(".dropdown-menu li"));
+    const candidates = items.filter(li => !(excludeValues || []).includes(li.dataset.value));
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    if (!pick) return;
+    items.forEach(o => o.classList.remove("selected"));
+    pick.classList.add("selected");
+    valueEl.textContent = pick.textContent;
+    root.dataset.value = pick.dataset.value;
+    return pick.dataset.value;
+  }
+
+  surpriseBtn.addEventListener("click", () => {
+    pickRandomOption("theme-dropdown", ["custom"]);
+    document.getElementById("custom-theme-wrap").classList.remove("on");
+    pickRandomOption("style-dropdown", []);
+  });
+
+  // ---- Coloration des balises de section ([Couplet], [Refrain], [Pont]...) ----
+  function escapeHtml(str){
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function renderLyrics(rawText){
+    const escaped = escapeHtml(rawText);
+    return escaped.replace(/\[([^\]]+)\]/g, (match, label) => {
+      const lower = label.toLowerCase();
+      let cls = "tag-other";
+      if (lower.includes("refrain")) cls = "tag-refrain";
+      else if (lower.includes("couplet")) cls = "tag-couplet";
+      else if (lower.includes("pont")) cls = "tag-pont";
+      return `<span class="tag ${cls}">[${label}]</span>`;
+    });
+  }
+
+  // ---- Onglets des variantes ("prises") ----
+  function renderVariantTabs(){
+    variantTabsEl.innerHTML = "";
+    if (lastTexts.length <= 1) {
+      variantTabsEl.classList.remove("on");
+      return;
+    }
+    variantTabsEl.classList.add("on");
+    lastTexts.forEach((_, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "variant-tab" + (i === currentVariant ? " selected" : "");
+      b.textContent = "Prise " + (i + 1);
+      b.addEventListener("click", () => {
+        currentVariant = i;
+        showVariant(i);
+        renderVariantTabs();
+      });
+      variantTabsEl.appendChild(b);
+    });
+  }
+
+  function showVariant(i){
+    const texte = lastTexts[i] || "";
+    lyricsOutput.innerHTML = renderLyrics(texte);
+    wordCount.textContent = (texte.trim() ? texte.trim().split(/\s+/).length : 0) + " mots";
+  }
+
+  function setLoading(isLoading){
+    btn.disabled = isLoading;
+    btnLabel.textContent = isLoading ? "Enregistrement en cours..." : "Lancer l'enregistrement";
+    vu.classList.toggle("on", isLoading);
+    vuLabel.classList.toggle("on", isLoading);
+    recDot.classList.toggle("live", isLoading);
+    recLabel.textContent = isLoading ? "Enregistrement..." : "Prêt à enregistrer";
+  }
+
+  function showError(message){
+    errBox.textContent = "⚠ " + message;
+    errBox.classList.add("on");
+  }
+
+  function clearError(){
+    errBox.classList.remove("on");
+    errBox.textContent = "";
+  }
+
+  async function genererRap(){
+    if (Date.now() < cooldownUntil) return;
+
+    let theme = themeDropdown.dataset.value;
+    if (theme === "custom") {
+      theme = document.getElementById("theme-custom").value.trim();
+      if (!theme) {
+        showError("Écris ton thème personnalisé avant de lancer l'enregistrement.");
+        document.getElementById("theme-custom").focus();
+        return;
+      }
+    }
+    const style = styleDropdown.dataset.value;
+    const keywords = document.getElementById("keywords").value.trim();
+    const length = lengthSegmented.dataset.value;
+    const wolofRatio = parseInt(wolofRatioInput.value, 10);
+    const variants = parseInt(variantsSegmented.dataset.value, 10);
+
+    clearError();
+    output.classList.remove("on");
+    setLoading(true);
+
+    const startedAt = performance.now();
+
+    let turnstileToken;
+    try {
+      turnstileToken = await getTurnstileToken();
+    } catch (turnstileError) {
+      showError(turnstileError.message);
+      setLoading(false);
+      return;
+    } finally {
+      // Le widget doit être reset avant la prochaine exécution, que le
+      // jeton ait été obtenu ou non.
+      if (turnstileWidgetId) turnstile.reset(turnstileWidgetId);
+    }
+
+    try {
+      // On appelle notre propre fonction Netlify, pas Google directement.
+      // La clé Gemini reste côté serveur, jamais exposée au navigateur.
+      const response = await fetch("/.netlify/functions/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme, style, keywords, length, wolofRatio, variants, turnstileToken })
+      });
+
+      const data = await response.json();
+
+      if (response.status === 429) {
+        setLoading(false);
+        startCooldown(20);
+        showError(data.error || "Trop de générations en peu de temps. Patiente un instant.");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || `Le serveur a répondu avec le code ${response.status}`);
+      }
+
+      const textes = Array.isArray(data.texts)
+        ? data.texts.map(t => (t || "").trim()).filter(Boolean)
+        : [];
+
+      if (textes.length === 0) {
+        throw new Error("Aucun texte n'a été renvoyé, réessaie.");
+      }
+
+      lastTexts = textes;
+      currentVariant = 0;
+      renderVariantTabs();
+      showVariant(0);
+      genTime.textContent = ((performance.now() - startedAt) / 1000).toFixed(1) + " s";
+      output.classList.add("on");
+
+      track += 1;
+      trackCount.textContent = "Piste " + String(track).padStart(2, "0");
+
+      setLoading(false);
+      startCooldown(4);
+      return;
+
+    } catch (error) {
+      showError(error.message || "Une erreur est survenue pendant la génération.");
+      console.error(error);
+      setLoading(false);
+    }
+  }
+
+  copyBtn.addEventListener("click", async () => {
+    const texte = lastTexts[currentVariant];
+    if (!texte) return;
+    try {
+      await navigator.clipboard.writeText(texte);
+      const original = copyBtn.textContent;
+      copyBtn.textContent = "Copié ✓";
+      setTimeout(() => { copyBtn.textContent = original; }, 1500);
+    } catch (e) {
+      showError("Impossible de copier dans le presse-papiers.");
+    }
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    const texte = lastTexts[currentVariant];
+    if (!texte) return;
+    const blob = new Blob([texte], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const suffixe = lastTexts.length > 1 ? "-prise" + (currentVariant + 1) : "";
+    a.download = "galsen-rap-piste-" + String(track - 1).padStart(2, "0") + suffixe + ".txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Relance une génération en conservant tous les paramètres actuels
+  // (thème, style, mots-clés, longueur, dosage, nombre de prises).
+  regenerateBtn.addEventListener("click", genererRap);
+
+  btn.addEventListener("click", genererRap);
+</script>
+
+</body>
+</html>
