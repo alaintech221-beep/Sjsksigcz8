@@ -24,37 +24,7 @@ const FETCH_TIMEOUT_MS = 9000; // reste sous la limite de 10s du plan gratuit Ne
 
 const VALID_LENGTHS = ["court", "complet"];
 const MAX_VARIANTS = 3; // "prises" générées en parallèle par appel
-const MAX_BODY_BYTES = 4500; // le payload attendu est minuscule (quelques champs texte + jeton Turnstile)
-
-// ---- Vérification Cloudflare Turnstile ----
-// But : empêcher un appel direct (curl/script) de contourner le front et
-// de siphonner le quota Gemini. Le rate-limit par IP seul ne suffit pas
-// (voir commentaire plus haut). Le secret est stocké côté Netlify :
-// Site settings > Environment variables > TURNSTILE_SECRET_KEY
-const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-
-async function verifyTurnstile(token, ip) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) {
-    // Pas configuré : on ne bloque pas silencieusement (sinon le site est
-    // cassé sans avertissement), mais ça doit être vu comme une erreur de config.
-    throw new Error("TURNSTILE_SECRET_KEY n'est pas configurée sur Netlify.");
-  }
-  if (!token || typeof token !== "string") {
-    return false;
-  }
-
-  const body = new URLSearchParams({ secret, response: token });
-  if (ip && ip !== "unknown") body.append("remoteip", ip);
-
-  const res = await fetch(TURNSTILE_VERIFY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-  const data = await res.json();
-  return data.success === true;
-}
+const MAX_BODY_BYTES = 4500; // le payload attendu est minuscule (quelques champs texte)
 
 // ---- Réponses JSON avec le bon header (sinon certains clients/navigateurs
 // peuvent mal interpréter le body) ----
@@ -177,19 +147,9 @@ exports.handler = async function (event) {
   const length = VALID_LENGTHS.includes(payload.length) ? payload.length : "complet";
   const wolofRatio = clampInt(payload.wolofRatio, 0, 100, 70);
   const variantsCount = clampInt(payload.variants, 1, MAX_VARIANTS, 1);
-  const turnstileToken = typeof payload.turnstileToken === "string" ? payload.turnstileToken : "";
 
   if (!theme || !style) {
     return jsonResponse(400, { error: "Thème et style requis." });
-  }
-
-  try {
-    const isHuman = await verifyTurnstile(turnstileToken, ip);
-    if (!isHuman) {
-      return jsonResponse(403, { error: "Vérification anti-robot échouée, recharge la page et réessaie." });
-    }
-  } catch (turnstileError) {
-    return jsonResponse(500, { error: turnstileError.message });
   }
 
   if (
