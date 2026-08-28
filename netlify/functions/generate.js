@@ -20,7 +20,7 @@ const RATE_LIMIT_MAX = 5; // 5 générations par minute par IP
 const MAX_THEME_LENGTH = 120;
 const MAX_STYLE_LENGTH = 60;
 const MAX_KEYWORDS_LENGTH = 150;
-const FETCH_TIMEOUT_MS = 9000; // reste sous la limite de 10s du plan gratuit Netlify
+const FETCH_TIMEOUT_MS = 7500; // marge de sécurité sous la limite dure de 10s (cold start Netlify inclus)
 
 const VALID_LENGTHS = ["court", "complet"];
 const MAX_VARIANTS = 3; // "prises" générées en parallèle par appel
@@ -214,7 +214,7 @@ ${consigneLongueur}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature },
+        generationConfig: { temperature, maxOutputTokens: 1024 },
         safetySettings: SAFETY_SETTINGS,
       }),
       signal,
