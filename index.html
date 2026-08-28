@@ -573,7 +573,6 @@
     .rec-dot.live, .vu span{ animation:none; }
   }
 </style>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -677,10 +676,6 @@
       <span id="btn-label">Lancer l'enregistrement</span>
     </button>
 
-    <!-- Widget Turnstile invisible : ne s'affiche que si Cloudflare a besoin
-         d'un vrai défi visuel (cas rare pour un utilisateur légitime). -->
-    <div id="turnstile-widget"></div>
-
     <div class="vu" id="vu">
       <span style="height:14px"></span><span style="height:26px"></span><span style="height:10px"></span>
       <span style="height:30px"></span><span style="height:18px"></span><span style="height:24px"></span>
@@ -713,64 +708,6 @@
 </div>
 
 <script>
-  // ---- Cloudflare Turnstile ----
-  // Remplace par ta vraie clé de site (publique, sans risque à exposer côté front).
-  // À créer sur https://dash.cloudflare.com/ > Turnstile > Add site.
-  const TURNSTILE_SITE_KEY = "0x4AAAAAAEfZkwCG_VqGBN8c";
-
-  let turnstileWidgetId = null;
-  let turnstileReady = false;
-  let pendingTurnstileResolvers = []; // file d'attente (normalement 1 seul élément à la fois)
-
-  function initTurnstile(){
-    if (typeof turnstile === "undefined") {
-      // Le script Cloudflare n'a pas encore chargé (réseau lent) : on réessaie.
-      setTimeout(initTurnstile, 300);
-      return;
-    }
-    turnstileWidgetId = turnstile.render("#turnstile-widget", {
-      sitekey: TURNSTILE_SITE_KEY,
-      size: "invisible",
-      appearance: "interaction-only", // n'apparaît que si un vrai défi visuel est requis
-      execution: "execute", // ne se déclenche que quand on appelle turnstile.execute()
-      callback: (token) => {
-        const resolve = pendingTurnstileResolvers.shift();
-        if (resolve) resolve(token);
-      },
-      "error-callback": () => {
-        const resolve = pendingTurnstileResolvers.shift();
-        if (resolve) resolve(null); // null = échec, géré par l'appelant
-      },
-    });
-    turnstileReady = true;
-  }
-  initTurnstile();
-
-  // Récupère un jeton Turnstile juste avant chaque génération.
-  // Un jeton est à usage unique : on reset le widget après chaque tentative
-  // (succès ou échec) pour préparer la prochaine exécution.
-  function getTurnstileToken(){
-    return new Promise((resolve, reject) => {
-      if (!turnstileReady) {
-        reject(new Error("Vérification anti-robot indisponible, réessaie dans un instant."));
-        return;
-      }
-      const timeoutId = setTimeout(() => {
-        pendingTurnstileResolvers = pendingTurnstileResolvers.filter(r => r !== onToken);
-        reject(new Error("La vérification anti-robot a expiré, réessaie."));
-      }, 8000);
-
-      function onToken(token){
-        clearTimeout(timeoutId);
-        if (token) resolve(token);
-        else reject(new Error("La vérification anti-robot a échoué, réessaie."));
-      }
-
-      pendingTurnstileResolvers.push(onToken);
-      turnstile.execute(turnstileWidgetId);
-    });
-  }
-
   const btn = document.getElementById("generate-btn");
   const btnLabel = document.getElementById("btn-label");
   const vu = document.getElementById("vu");
@@ -1005,26 +942,13 @@
 
     const startedAt = performance.now();
 
-    let turnstileToken;
-    try {
-      turnstileToken = await getTurnstileToken();
-    } catch (turnstileError) {
-      showError(turnstileError.message);
-      setLoading(false);
-      return;
-    } finally {
-      // Le widget doit être reset avant la prochaine exécution, que le
-      // jeton ait été obtenu ou non.
-      if (turnstileWidgetId) turnstile.reset(turnstileWidgetId);
-    }
-
     try {
       // On appelle notre propre fonction Netlify, pas Google directement.
       // La clé Gemini reste côté serveur, jamais exposée au navigateur.
       const response = await fetch("/.netlify/functions/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, style, keywords, length, wolofRatio, variants, turnstileToken })
+        body: JSON.stringify({ theme, style, keywords, length, wolofRatio, variants })
       });
 
       const data = await response.json();
@@ -1103,4 +1027,4 @@
 </script>
 
 </body>
-                                   </html>
+  </html>
