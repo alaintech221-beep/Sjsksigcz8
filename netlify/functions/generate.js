@@ -278,6 +278,14 @@ ${consigneLongueur}
     if (texts.length === 0) {
       const premierEchec = resultats.find((r) => r.status === "rejected");
       const raison = premierEchec && premierEchec.reason;
+      console.error("Échec génération Gemini:", raison);
+
+      const estAbandon =
+        raison && (raison.name === "AbortError" || /abort/i.test(raison.message || ""));
+      if (estAbandon) {
+        return jsonResponse(504, { error: "Gemini a mis trop de temps à répondre. Réessaie, ou choisis le format court." });
+      }
+
       const statusCode = (raison && raison.statusCode) || 502;
       const message = (raison && raison.message) || "Aucune prise n'a pu être générée.";
       return jsonResponse(statusCode, { error: message });
@@ -286,8 +294,9 @@ ${consigneLongueur}
     return jsonResponse(200, { texts });
   } catch (error) {
     clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
-      return jsonResponse(504, { error: "Gemini a mis trop de temps à répondre. Réessaie." });
+    console.error("Erreur inattendue:", error);
+    if (error.name === "AbortError" || /abort/i.test(error.message || "")) {
+      return jsonResponse(504, { error: "Gemini a mis trop de temps à répondre. Réessaie, ou choisis le format court." });
     }
     return jsonResponse(500, { error: error.message });
   }
