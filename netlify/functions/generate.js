@@ -214,7 +214,15 @@ ${consigneLongueur}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature, maxOutputTokens: length === "court" ? 450 : 1024 },
+        generationConfig: {
+          temperature,
+          maxOutputTokens: length === "court" ? 900 : 2200,
+          // gemini-3.6-flash "réfléchit" avant de répondre, et ces tokens de
+          // raisonnement sont décomptés du même budget que maxOutputTokens.
+          // On le réduit au minimum pour laisser la place au texte réel
+          // (le modèle ne supporte pas la désactivation complète du thinking).
+          thinkingConfig: { thinkingLevel: "low" },
+        },
         safetySettings: SAFETY_SETTINGS,
       }),
       signal,
